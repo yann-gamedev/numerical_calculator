@@ -1,0 +1,15 @@
+﻿# Local Vercel project settings
+.vercel/
+
+# Secrets (not needed by the current static application)
+.env
+.env.*
+!.env.example
+
+# Dependencies and local logs
+node_modules/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
