@@ -6,7 +6,6 @@
     <title>Numerical Root Finder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -127,12 +126,6 @@
                 </div>
             </div>
 
-            <!-- Visualization Area -->
-            <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-4 h-[300px] md:h-[400px] flex-shrink-0 relative">
-                <h3 class="absolute top-4 left-6 text-sm font-medium text-neutral-400 z-10">Function Plot f(x)</h3>
-                <canvas id="plotCanvas" class="w-full h-full"></canvas>
-            </div>
-
             <!-- Data Table -->
             <div class="bg-neutral-950 border border-neutral-800 rounded-xl flex flex-col flex-grow min-h-[300px] overflow-hidden">
                 <div class="px-6 py-4 border-b border-neutral-800 flex justify-between items-center bg-neutral-950 z-10">
@@ -173,14 +166,12 @@
         const tableHeader = document.getElementById('tableHeader');
         const tableBody = document.getElementById('tableBody');
 
-        let chartInstance = null;
         let compiledFunc = null;
 
         // Number formatter
         const fmt = (num) => {
             if (num === null || num === undefined || isNaN(num)) return '-';
-            // Show scientific notation if very small, else fixed
-            if (Math.abs(num) > 0 && Math.abs(num) < 1e-4) return num.toExponential(6);
+            // Display six decimal places consistently without changing calculation precision.
             return num.toFixed(6);
         };
 
@@ -451,107 +442,6 @@
             });
         }
 
-        function renderChart(root, startX, endX) {
-            const ctx = document.getElementById('plotCanvas').getContext('2d');
-            
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-
-            // Determine plot range
-            let span = 5;
-            if (root !== null && isFinite(root)) {
-                // Determine span based on inputs if possible, otherwise fixed span around root
-                let min = Math.min(root, startX !== null ? startX : root);
-                let max = Math.max(root, endX !== null ? endX : root);
-                let range = Math.max(Math.abs(max - min), 1);
-                span = range * 1.5; 
-            }
-            
-            let center = (root !== null && isFinite(root)) ? root : 0;
-            let xMin = center - span;
-            let xMax = center + span;
-
-            // Generate points
-            const points = 100;
-            const step = (xMax - xMin) / points;
-            const dataPts = [];
-            const labels = [];
-            
-            for (let x = xMin; x <= xMax; x += step) {
-                let y = NaN;
-                try { y = f(x); } catch(e){}
-                
-                // Limit massive y values for better visualization
-                if(Math.abs(y) > 1e6) y = y > 0 ? 1e6 : -1e6;
-
-                labels.push(x.toFixed(2));
-                dataPts.push({ x: x, y: y });
-            }
-
-            // Datasets
-            const datasets = [{
-                label: 'f(x)',
-                data: dataPts,
-                borderColor: '#3b82f6', // primary-500
-                borderWidth: 2,
-                pointRadius: 0,
-                tension: 0.1,
-                fill: false,
-            }];
-
-            if (root !== null && isFinite(root)) {
-                let yRoot = f(root);
-                datasets.push({
-                    label: 'Found Root',
-                    data: [{ x: root, y: isFinite(yRoot) ? yRoot : 0 }],
-                    backgroundColor: '#10b981', // emerald-500
-                    borderColor: '#000', // pure black to contrast against background
-                    borderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    type: 'scatter'
-                });
-            }
-
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: { duration: 500 },
-                    interaction: { mode: 'nearest', intersect: false },
-                    plugins: {
-                        legend: { labels: { color: '#a3a3a3' } },
-                        tooltip: {
-                            backgroundColor: '#000000',
-                            titleColor: '#f5f5f5',
-                            bodyColor: '#d4d4d4',
-                            borderColor: '#262626',
-                            borderWidth: 1
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'linear',
-                            position: 'bottom',
-                            grid: { color: '#171717', tickColor: 'transparent' },
-                            ticks: { color: '#a3a3a3', font: { family: 'JetBrains Mono' } },
-                            border: { color: '#262626' }
-                        },
-                        y: {
-                            grid: { color: '#171717', zeroLineColor: '#404040' },
-                            ticks: { color: '#a3a3a3', font: { family: 'JetBrains Mono' } },
-                            border: { color: '#262626' }
-                        }
-                    }
-                }
-            });
-        }
-
         calcBtn.addEventListener('click', () => {
             if (!compileMath()) return;
 
@@ -560,23 +450,18 @@
             const maxIter = parseInt(maxIterInput.value);
             
             let result;
-            let startX = null;
-            let endX = null;
 
             try {
                 if (method === 'bisection' || method === 'regula') {
                     const a = parseFloat(document.getElementById('inputA').value);
                     const b = parseFloat(document.getElementById('inputB').value);
-                    startX = a; endX = b;
                     result = bracketingMethod(method === 'regula', a, b, tol, maxIter);
                 } else if (method === 'newton') {
                     const x0 = parseFloat(document.getElementById('inputX0').value);
-                    startX = x0; endX = x0;
                     result = newtonMethod(x0, tol, maxIter);
                 } else if (method === 'secant') {
                     const x0 = parseFloat(document.getElementById('inputX0').value);
                     const x1 = parseFloat(document.getElementById('inputX1').value);
-                    startX = Math.min(x0, x1); endX = Math.max(x0, x1);
                     result = secantMethod(x0, x1, tol, maxIter);
                 }
             } catch (err) {
@@ -612,7 +497,6 @@
 
             // Render output
             renderTable(method, result.history);
-            renderChart(result.root, startX, endX);
         });
 
         // Initialize math parser silently on load to prime it
